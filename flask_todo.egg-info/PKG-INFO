@@ -1,0 +1,10 @@
+Metadata-Version: 2.1
+Name: flask_todo
+Version: 0.0
+Summary: A To-Do List built with Flask
+Author: <Your actual name here>
+Author-email: <Your actual e-mail address here>
+Keywords: web flask
+Requires-Dist: flask
+Requires-Dist: flask-sqlalchemy
+Requires-Dist: psycopg2
