@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,6 +30,7 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_93D3B4E298924C3DBFEC0EBEB226D9D6 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9D26816767694C57A012DFCB2631FD49 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5A6AFCE3E7274B9BA4476A60C39D64DA }}
+          auth-type: service-principal
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
