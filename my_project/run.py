@@ -1,15 +1,14 @@
-"""
-2022
-apavelchak@gmail.com
-© Andrii Pavelchak
-"""
-
 from my_project import create_app
 
+# --- Development server port ---
 DEVELOPMENT_PORT = 5000
 
+# --- Database configuration ---
 config_data = {
-    "SQLALCHEMY_DATABASE_URI": "sqlite:///my_db.sqlite",
+    "SQLALCHEMY_DATABASE_URI": (
+        "mysql+pymysql://veronika:Andriy2405@clouds-mysql.mysql.database.azure.com:3306/footboom"
+        "?ssl_ca=/home/Veronika-Korchahin/clouds/azure/DigiCertGlobalRootG2.crt.pem"
+    ),
     "SQLALCHEMY_TRACK_MODIFICATIONS": False
 }
 

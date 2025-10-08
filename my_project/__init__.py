@@ -4,185 +4,64 @@ apavelchak@gmail.com
 © Andrii Pavelchak
 """
 
-import os
-from http import HTTPStatus
 import secrets
 from typing import Dict, Any
+from http import HTTPStatus
 
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy_utils import database_exists, create_database
 
-from my_project.auth.route import register_routes
-
-SECRET_KEY = "SECRET_KEY"
-SQLALCHEMY_DATABASE_URI = "SQLALCHEMY_DATABASE_URI"
-MYSQL_ROOT_USER = "MYSQL_ROOT_USER"
-MYSQL_ROOT_PASSWORD = "MYSQL_ROOT_PASSWORD"
-
-# Database
+# --- Create SQLAlchemy instance ---
 db = SQLAlchemy()
 
-todos = {}
+# --- Todo model for database table ---
+class Todo(db.Model):
+    __tablename__ = 'todos'
+    id = db.Column(db.String(50), primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    done = db.Column(db.Boolean, default=False)
 
-
+# --- Function to create Flask app ---
 def create_app(app_config: Dict[str, Any], additional_config: Dict[str, Any]) -> Flask:
-    """
-    Creates Flask application
-    :param app_config: Flask configuration
-    :param additional_config: additional configuration
-    :return: Flask application object
-    """
-    _process_input_config(app_config, additional_config)
+    """Create Flask application, initialize DB and routes"""
     app = Flask(__name__)
     app.config["SECRET_KEY"] = secrets.token_hex(16)
-    app.config = {**app.config, **app_config}
+    app.config.update(app_config)
 
     _init_db(app)
-    register_routes(app)
-    _init_swagger(app)
+    _init_routes(app)
 
     return app
 
-
-def _init_swagger(app: Flask) -> None:
-    # A-lia Swagger
-    restx_api = Api(app, title='Pavelchak test backend',
-                    description='A simple backend')  # https://flask-restx.readthedocs.io/
-
-    @restx_api.route('/number/<string:todo_id>')
-    class TodoSimple(Resource):
-        @staticmethod
-        def get(todo_id):
-            return todos, 202
-
-        @staticmethod
-        def put(todo_id):
-            todos[todo_id] = todo_id
-            return todos, HTTPStatus.CREATED
-
-    @app.route("/hi")
-    def hello_world():
-        return todos, HTTPStatus.OK
-
-
 def _init_db(app: Flask) -> None:
-    """
-    Initializes DB with SQLAlchemy
-    :param app: Flask application object
-    """
+    """Initialize the database and create tables"""
     db.init_app(app)
-
-    if not database_exists(app.config[SQLALCHEMY_DATABASE_URI]):
-        create_database(app.config[SQLALCHEMY_DATABASE_URI])
-
-    import my_project.auth.domain
     with app.app_context():
         db.create_all()
 
+def _init_routes(app: Flask) -> None:
+    """Initialize REST API routes with Flask-RESTX"""
+    api = Api(app, title="Todo Backend", description="Simple backend with Azure MySQL")
 
-def _process_input_config(app_config: Dict[str, Any], additional_config: Dict[str, Any]) -> None:
-    """
-    Processes input configuration
-    :param app_config: Flask configuration
-    :param additional_config: additional configuration
-    """
-    # Get root username and password
-    root_user = os.getenv(MYSQL_ROOT_USER, additional_config[MYSQL_ROOT_USER])
-    root_password = os.getenv(MYSQL_ROOT_PASSWORD, additional_config[MYSQL_ROOT_PASSWORD])
-    # Set root username and password in app_config
-    app_config[SQLALCHEMY_DATABASE_URI] = app_config[SQLALCHEMY_DATABASE_URI].format(root_user, root_password)
-    pass
+    @api.route('/todos/<string:todo_id>')
+    class TodoResource(Resource):
+        def get(self, todo_id):
+            """Get a todo by ID"""
+            todo = Todo.query.get(todo_id)
+            if todo:
+                return {"id": todo.id, "title": todo.title, "done": todo.done}, HTTPStatus.OK
+            return {"error": "Todo not found"}, HTTPStatus.NOT_FOUND
 
-# import os
-# from http import HTTPStatus
-# from termios import TIOCPKT_DOSTOP
-# from typing import Dict, Any
-
-# from flask import Flask
-# from flask_restx import Api, Resource
-# from flask_sqlalchemy import SQLAlchemy
-# from sqlalchemy_utils import database_exists, create_database
-
-# from my_project.auth.route import register_routes
-
-# # Конфігурація
-# SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
-# SQLALCHEMY_DATABASE_URI = os.getenv(
-#     "SQLALCHEMY_DATABASE_URI", "mysql://root:password@localhost/mydatabase"
-# )
-# MYSQL_ROOT_USER = os.getenv("MYSQL_ROOT_USER", "root")
-# MYSQL_ROOT_PASSWORD = os.getenv("MYSQL_ROOT_PASSWORD", "password")
-
-# # Ініціалізація
-# db = SQLAlchemy()
-
-
-# def create_app(app_config: Dict[str, Any], additional_config: Dict[str, Any]) -> Flask:
-#     """
-#     Creates Flask application
-#     :param app_config: Flask configuration
-#     :param additional_config: additional configuration
-#     :return: Flask application object
-#     """
-#     _process_input_config(app_config, additional_config)
-#     app = Flask(__name__)
-#     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "default_secret_key")
-#     app.config.update(app_config)
-
-#     _init_db(app)
-#     register_routes(app)
-#     _init_swagger(app)
-
-#     return app
-
-
-# def _init_db(app: Flask) -> None:
-#     """
-#     Initializes DB with SQLAlchemy
-#     :param app: Flask application object
-#     """
-#     db.init_app(app)
-
-#     if not database_exists(app.config["SQLALCHEMY_DATABASE_URI"]):
-#         create_database(app.config["SQLALCHEMY_DATABASE_URI"])
-
-#     import my_project.auth.domain
-
-#     with app.app_context():
-#         db.create_all()
-
-
-# def _process_input_config(
-#     app_config: Dict[str, Any], additional_config: Dict[str, Any]
-# ) -> None:
-#     """
-#     Processes input configuration
-#     :param app_config: Flask configuration
-#     :param additional_config: additional configuration
-#     """
-#     # Ensure database URI has the correct format
-#     root_user = os.getenv(MYSQL_ROOT_USER, additional_config.get(MYSQL_ROOT_USER))
-#     root_password = os.getenv(
-#         MYSQL_ROOT_PASSWORD, additional_config.get(MYSQL_ROOT_PASSWORD)
-#     )
-#     app_config["SQLALCHEMY_DATABASE_URI"] = app_config[
-#         "SQLALCHEMY_DATABASE_URI"
-#     ].format(root_user, root_password)
-
-
-# def _init_swagger(app: Flask) -> None:
-#     # A-lia Swagger
-#     restx_api = Api(app, title="Pavelchak test backend", description="A simple backend")
-
-#     @restx_api.route("/number/<string:todo_id>")
-#     class TodoSimple(Resource):
-#         @staticmethod
-#         def get(todo_id):
-#             return {"todos": TIOCPKT_DOSTOP}, 200
-
-#         @staticmethod
-#         def put(todo_id):
-#             TIOCPKT_DOSTOP[todo_id] = todo_id
-#             return {"todos": TIOCPKT_DOSTOP}, 201
+        def put(self, todo_id):
+            """Add or update a todo by ID"""
+            data = request.get_json()
+            todo = Todo.query.get(todo_id)
+            if todo:
+                todo.title = data.get("title", todo.title)
+                todo.done = data.get("done", todo.done)
+            else:
+                todo = Todo(id=todo_id, title=data.get("title", ""), done=data.get("done", False))
+                db.session.add(todo)
+            db.session.commit()
+            return {"id": todo.id, "title": todo.title, "done": todo.done}, HTTPStatus.CREATED
